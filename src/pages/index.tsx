@@ -15,19 +15,13 @@ export default () => (
         width="250"
         alt="Vercel + Notion"
       />
-      <h1>Keike Blog</h1>
+      <h1>My Notion Blog - Cutomized</h1>
       <h2>
-        Blazing Fast Notion Blog with Next.js'{' '}
-        <ExtLink
-          href="https://github.com/zeit/next.js/issues/9524"
-          className="dotted"
-          style={{ color: 'inherit' }}
-        >
-          SSG
-        </ExtLink>
+        これは Notion Blog
+        のカスタマイズ内容を公開するために作られたサンプルページです。
+        <br />
+        This is Customized Notion Blog Sample!
       </h2>
-
-      <Features />
     </div>
   </>
 )
