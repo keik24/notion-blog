@@ -15,12 +15,9 @@ export default () => (
         width="250"
         alt="Vercel + Notion"
       />
-      <h1>My Notion Blog - Cutomized</h1>
-      <h2>
-        これは Notion Blog
-        のカスタマイズ内容を公開するために作られたサンプルページです。
+      <h1>Keike Blog</h1>
+      <h2>けいけぶろぐ
         <br />
-        This is Customized Notion Blog Sample!
       </h2>
     </div>
   </>
