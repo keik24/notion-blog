@@ -17,12 +17,12 @@ export default ({ titlePre = '', ogImageReplace = undefined }) => {
   return (
     <header className={styles.header}>
       <Head>
-        <title>{titlePre ? `${titlePre} |` : ''} My Notion Blog</title>
+        <title>{titlePre ? `${titlePre} |` : ''} Keike Blog</title>
         <meta
           name="description"
           content="An example Next.js site using Notion for the blog"
         />
-        <meta name="og:title" content="My Notion Blog" />
+        <meta name="og:title" content="Keike Blog" />
         <meta property="og:image" content={ogImageReplace || ogImageUrl} />
         <meta name="twitter:site" content="ichi0g0y" />
         <meta name="twitter:card" content="summary_large_image" />
