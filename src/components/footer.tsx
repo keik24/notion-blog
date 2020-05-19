@@ -4,7 +4,6 @@ export default () => (
   <>
     <footer>
       <ExtLink href="">
-        Source code
       </ExtLink>
     </footer>
   </>
