@@ -20,13 +20,10 @@ export default ({ titlePre = '', ogImageReplace = undefined }) => {
         <title>{titlePre ? `${titlePre} |` : ''} Keike Blog</title>
         <meta
           name="description"
-          content="An example Next.js site using Notion for the blog"
+          content="けいけブログです"
         />
         <meta name="og:title" content="Keike Blog" />
         <meta property="og:image" content={ogImageReplace || ogImageUrl} />
-        <meta name="twitter:site" content="ichi0g0y" />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:image" content={ogImageReplace || ogImageUrl} />
       </Head>
       <ul>
         {navItems.map(({ label, page, link }) => (
