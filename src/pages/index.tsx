@@ -15,9 +15,9 @@ export default () => (
         width="250"
         alt="Vercel + Notion"
       />
-      <h1>Keike Blog</h1>
+      <h1>お買い物ネット</h1>
       <h2>
-        けいけブログ<br />
+        お買い得情報を掲載していきます。<br />
       </h2>
     </div>
   </>

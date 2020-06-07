@@ -1,6 +1,8 @@
 import '../styles/global.css'
 import ExtLink from '../components/ext-link'
 
+import * as gtag from '../lib/gtag'
+
 export default ({ Component, pageProps }) => (
   <>
     <Component {...pageProps} />
