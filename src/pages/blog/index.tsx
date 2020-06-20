@@ -8,7 +8,6 @@ import {
   getBlogLink,
   getDateStr,
   postIsPublished,
-  getTagLink,
 } from '../../lib/blog-helpers'
 import { textBlock } from '../../lib/notion/renderers'
 import getNotionUsers from '../../lib/notion/getNotionUsers'
@@ -18,7 +17,6 @@ export async function getStaticProps({ preview }) {
   const postsTable = await getBlogIndex()
 
   const authorsToGet: Set<string> = new Set()
-  let allTags: string[] = []
   const posts: any[] = Object.keys(postsTable)
     .map(slug => {
       const post = postsTable[slug]
@@ -30,12 +28,10 @@ export async function getStaticProps({ preview }) {
       for (const author of post.Authors) {
         authorsToGet.add(author)
       }
-      allTags = allTags.concat(post.Tags)
       return post
     })
     .filter(Boolean)
 
-  allTags = allTags.filter((tag, index, orig) => orig.indexOf(tag) === index)
   const { users } = await getNotionUsers([...authorsToGet])
 
   posts.map(post => {
@@ -46,13 +42,12 @@ export async function getStaticProps({ preview }) {
     props: {
       preview: preview || false,
       posts,
-      allTags,
     },
-    revalidate: 10,
+    unstable_revalidate: 10,
   }
 }
 
-export default ({ posts = [], allTags = [], preview }) => {
+export default ({ posts = [], preview }) => {
   return (
     <>
       <Header titlePre="Blog" />
@@ -72,31 +67,9 @@ export default ({ posts = [], allTags = [], preview }) => {
         {posts.length === 0 && (
           <p className={blogStyles.noPosts}>There are no posts yet</p>
         )}
-        {posts.length > 0 && allTags.length > 0 && (
-          <>
-            <div className={blogStyles.tagsTitle}>Tags:</div>
-            <div className={blogStyles.tags}>
-              {allTags &&
-                allTags.length > 0 &&
-                allTags.map(tag => (
-                  <Link href="/blog/tag/[tag]" as={getTagLink(tag)}>
-                    <span className={blogStyles.tag}>{tag}</span>
-                  </Link>
-                ))}
-            </div>
-          </>
-        )}
         {posts.map(post => {
           return (
             <div className={blogStyles.postPreview} key={post.Slug}>
-              {post.cover ? (
-                <img
-                  src={`/api/asset?assetUrl=${encodeURIComponent(
-                    post.cover.url as any
-                  )}&blockId=${post.cover.blockId}`}
-                  className={blogStyles.postPreviewCover}
-                />
-              ) : null}
               <h3>
                 <Link href="/blog/[slug]" as={getBlogLink(post.Slug)}>
                   <div className={blogStyles.titleContainer}>
@@ -107,13 +80,6 @@ export default ({ posts = [], allTags = [], preview }) => {
                   </div>
                 </Link>
               </h3>
-              {post.Tags &&
-                post.Tags.length > 0 &&
-                post.Tags.map(tag => (
-                  <Link href="/blog/tag/[tag]" as={getTagLink(tag)}>
-                    <span className={blogStyles.tag}>{tag}</span>
-                  </Link>
-                ))}
               {post.Authors.length > 0 && (
                 <div className="authors">By: {post.Authors.join(' ')}</div>
               )}
