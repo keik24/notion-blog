@@ -1,5 +1,5 @@
 // commonjs so it can be run without transpiling
-const uuid = require('uuid/v4')
+const { v4: uuid } = require('uuid')
 const fetch = require('node-fetch')
 const {
   BLOG_INDEX_ID: pageId,
@@ -104,7 +104,7 @@ async function main() {
                   { property: 'S6_"', visible: true },
                   { property: 'la`A', visible: true },
                   { property: 'a`af', visible: true },
-                  { property: 'ichi0g0y', visible: true },
+                  { property: 'ijjk', visible: true },
                 ],
                 table_wrap: true,
               },
@@ -129,14 +129,14 @@ async function main() {
                 'S6_"': { name: 'Slug', type: 'text' },
                 'la`A': { name: 'Published', type: 'checkbox' },
                 'a`af': { name: 'Date', type: 'date' },
-                ichi0g0y: { name: 'Authors', type: 'person' },
+                ijjk: { name: 'Authors', type: 'person' },
               },
               format: {
                 collection_page_properties: [
                   { property: 'S6_"', visible: true },
                   { property: 'la`A', visible: true },
                   { property: 'a`af', visible: true },
-                  { property: 'ichi0g0y', visible: true },
+                  { property: 'ijjk', visible: true },
                 ],
               },
               parent_id: collectionId,
