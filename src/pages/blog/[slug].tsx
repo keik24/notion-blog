@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import fetch from 'node-fetch'
+import psl from 'psl'
 import { useRouter } from 'next/router'
 import Header from '../../components/header'
 import Heading from '../../components/heading'
@@ -11,8 +12,7 @@ import getPageData from '../../lib/notion/getPageData'
 import React, { CSSProperties, useEffect } from 'react'
 import getBlogIndex from '../../lib/notion/getBlogIndex'
 import getNotionUsers from '../../lib/notion/getNotionUsers'
-import { getBlogLink, getDateStr } from '../../lib/blog-helpers'
-import Footer from '../../components/footer'
+import { getBlogLink, getDateStr, getTagLink } from '../../lib/blog-helpers'
 
 // Get the data for each blog post
 export async function getStaticProps({ params: { slug }, preview }) {
@@ -34,6 +34,7 @@ export async function getStaticProps({ params: { slug }, preview }) {
   }
   const postData = await getPageData(post.id)
   post.content = postData.blocks
+  post.cover = postData.cover
 
   for (let i = 0; i < postData.blocks.length; i++) {
     const { value } = postData.blocks[i]
@@ -58,7 +59,7 @@ export async function getStaticProps({ params: { slug }, preview }) {
   }
 
   const { users } = await getNotionUsers(post.Authors || [])
-  post.Authors = Object.keys(users).map((id) => users[id].full_name)
+  post.Authors = Object.keys(users).map(id => users[id].full_name)
 
   return {
     props: {
@@ -76,8 +77,8 @@ export async function getStaticPaths() {
   // for actually published ones
   return {
     paths: Object.keys(postsTable)
-      .filter((post) => postsTable[post].Published === 'Yes')
-      .map((slug) => getBlogLink(slug)),
+      .filter(post => postsTable[post].Published === 'Yes')
+      .map(slug => getBlogLink(slug)),
     fallback: true,
   }
 }
@@ -104,7 +105,6 @@ const RenderPost = ({ post, redirect, preview }) => {
     // client navigation
     if (post && post.hasTweet) {
       if ((window as any)?.twttr?.widgets) {
-        // TODO onSave時のlintと eslint --fix のlintチェックが異なる。
         ;(window as any).twttr.widgets.load()
       } else if (!document.querySelector(`script[src="${twitterSrc}"]`)) {
         const script = document.createElement('script')
@@ -138,9 +138,380 @@ const RenderPost = ({ post, redirect, preview }) => {
     )
   }
 
+  let contents
+
+  if (!post.content || post.content.length === 0) {
+    contents = <p>This post has no content</p>
+  } else {
+    let headings: {
+      name: string
+      type: string | React.ComponentType
+      anchor: string
+    }[] = []
+    let hasTableOfContents = false
+    let tableOfContents = []
+    contents = (post.content || []).map((block, blockIdx) => {
+      const { value } = block
+      const { type, properties, id, parent_id } = value
+      const isLast = blockIdx === post.content.length - 1
+      const isList = listTypes.has(type)
+      let toRender = []
+
+      if (isList) {
+        listTagName = components[type === 'bulleted_list' ? 'ul' : 'ol']
+        listLastId = `list${id}`
+
+        listMap[id] = {
+          key: id,
+          nested: [],
+          children: textBlock(properties.title, true, id),
+        }
+
+        if (listMap[parent_id]) {
+          listMap[id].isNested = true
+          listMap[parent_id].nested.push(id)
+        }
+      }
+
+      if (listTagName && (isLast || !isList)) {
+        toRender.push(
+          React.createElement(
+            listTagName,
+            { key: listLastId! },
+            Object.keys(listMap).map(itemId => {
+              if (listMap[itemId].isNested) return null
+
+              const createEl = item =>
+                React.createElement(
+                  components.li || 'ul',
+                  { key: item.key },
+                  item.children,
+                  item.nested.length > 0
+                    ? React.createElement(
+                        components.ul || 'ul',
+                        { key: item + 'sub-list' },
+                        item.nested.map(nestedId => createEl(listMap[nestedId]))
+                      )
+                    : null
+                )
+              return createEl(listMap[itemId])
+            })
+          )
+        )
+        listMap = {}
+        listLastId = null
+        listTagName = null
+      }
+
+      const renderHeading = (Type: string | React.ComponentType) => {
+        const anchor = `heading_${headings.length.toString()}`
+        headings.push({ name: properties.title[0][0], type: Type, anchor })
+        toRender.push(
+          <Heading id={anchor} key={id}>
+            <Type key={id}>{textBlock(properties.title, true, id)}</Type>
+          </Heading>
+        )
+      }
+
+      const isURL = str => {
+        var pattern = new RegExp(
+          '^(https?:\\/\\/)?' + // protocol
+          '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|' + // domain name
+          '((\\d{1,3}\\.){3}\\d{1,3}))' + // OR ip (v4) address
+          '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*' + // port and path
+          '(\\?[;&a-z\\d%_.~+=-]*)?' + // query string
+            '(\\#[-a-z\\d_]*)?$',
+          'i'
+        ) // fragment locator
+        return !!pattern.test(str)
+      }
+
+      const extractHostname = url => {
+        let hostname
+        if (url.indexOf('//') > -1) {
+          hostname = url.split('/')[2]
+        } else {
+          hostname = url.split('/')[0]
+        }
+
+        hostname = hostname.split(':')[0]
+        hostname = hostname.split('?')[0]
+        return hostname
+      }
+
+      const renderBookmark = ({ link, title, description, format }) => {
+        const { bookmark_icon: icon, bookmark_cover: cover } = format
+        const newTitle = isURL(title) ? psl.get(extractHostname(title)) : title
+        toRender.push(
+          <div className={blogStyles.bookmark}>
+            <div>
+              <div style={{ display: 'flex' }}>
+                <a
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={blogStyles.bookmarkContentsWrapper}
+                  href={link}
+                >
+                  <div role="button" className={blogStyles.bookmarkContents}>
+                    <div className={blogStyles.bookmarkInfo}>
+                      <div className={blogStyles.bookmarkTitle}>{newTitle}</div>
+                      <div className={blogStyles.bookmarkDescription}>
+                        {description}
+                      </div>
+                      <div className={blogStyles.bookmarkLinkWrapper}>
+                        {icon ? (
+                          <img
+                            src={icon}
+                            className={blogStyles.bookmarkLinkIcon}
+                          />
+                        ) : null}
+                        <div className={blogStyles.bookmarkLink}>{link}</div>
+                      </div>
+                    </div>
+                    {cover ? (
+                      <div className={blogStyles.bookmarkCoverWrapper1}>
+                        <div className={blogStyles.bookmarkCoverWrapper2}>
+                          <div className={blogStyles.bookmarkCoverWrapper3}>
+                            <img
+                              src={cover}
+                              className={blogStyles.bookmarkCover}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                </a>
+              </div>
+            </div>
+          </div>
+        )
+      }
+
+      switch (type) {
+        case 'page':
+        case 'divider':
+          break
+        case 'text':
+          if (properties) {
+            toRender.push(textBlock(properties.title, false, id))
+          }
+          break
+        case 'image':
+        case 'video':
+        case 'embed': {
+          const { format = {} } = value
+          const {
+            block_width,
+            block_height,
+            display_source,
+            block_aspect_ratio,
+          } = format
+          const baseBlockWidth = 768
+          const roundFactor = Math.pow(10, 2)
+          // calculate percentages
+          const width = block_width
+            ? `${Math.round(
+                (block_width / baseBlockWidth) * 100 * roundFactor
+              ) / roundFactor}%`
+            : block_height || '100%'
+
+          const isImage = type === 'image'
+          const Comp = isImage ? 'img' : 'video'
+          const useWrapper = block_aspect_ratio && !block_height
+          const childStyle: CSSProperties = useWrapper
+            ? {
+                width: '100%',
+                height: '100%',
+                border: 'none',
+                position: 'absolute',
+                top: 0,
+              }
+            : {
+                width,
+                border: 'none',
+                height: block_height,
+                display: 'block',
+                maxWidth: '100%',
+              }
+
+          let child = null
+
+          if (!isImage && !value.file_ids) {
+            // external resource use iframe
+            child = (
+              <iframe
+                style={childStyle}
+                src={display_source}
+                key={!useWrapper ? id : undefined}
+                className={!useWrapper ? 'asset-wrapper' : undefined}
+              />
+            )
+          } else {
+            // notion resource
+            child = (
+              <Comp
+                key={!useWrapper ? id : undefined}
+                src={`/api/asset?assetUrl=${encodeURIComponent(
+                  display_source as any
+                )}&blockId=${id}`}
+                controls={!isImage}
+                alt={`An ${isImage ? 'image' : 'video'} from Notion`}
+                loop={!isImage}
+                muted={!isImage}
+                autoPlay={!isImage}
+                style={childStyle}
+              />
+            )
+          }
+
+          toRender.push(
+            useWrapper ? (
+              <div
+                style={{
+                  paddingTop: `${Math.round(block_aspect_ratio * 100)}%`,
+                  position: 'relative',
+                }}
+                className="asset-wrapper"
+                key={id}
+              >
+                {child}
+              </div>
+            ) : (
+              child
+            )
+          )
+          break
+        }
+        case 'header':
+          renderHeading('h1')
+          break
+        case 'sub_header':
+          renderHeading('h2')
+          break
+        case 'sub_sub_header':
+          renderHeading('h3')
+          break
+        case 'table_of_contents':
+          toRender.push(tableOfContents)
+          hasTableOfContents = true
+          break
+        case 'bookmark':
+          const { link, title, description } = properties
+          const { format = {} } = value
+          renderBookmark({ link, title: title[0][0], description, format })
+          break
+        case 'code': {
+          if (properties.title) {
+            const content = properties.title[0][0]
+            const language = properties.language[0][0]
+
+            if (language === 'LiveScript') {
+              // this requires the DOM for now
+              toRender.push(
+                <ReactJSXParser
+                  key={id}
+                  jsx={content}
+                  components={components}
+                  componentsOnly={false}
+                  renderInpost={false}
+                  allowUnknownElements={true}
+                  blacklistedTags={['script', 'style']}
+                />
+              )
+            } else {
+              toRender.push(
+                <components.Code key={id} language={language || ''}>
+                  {content}
+                </components.Code>
+              )
+            }
+          }
+          break
+        }
+        case 'quote': {
+          if (properties.title) {
+            toRender.push(
+              React.createElement(
+                components.blockquote,
+                { key: id },
+                properties.title
+              )
+            )
+          }
+          break
+        }
+        case 'callout': {
+          toRender.push(
+            <div className="callout" key={id}>
+              {value.format?.page_icon && <div>{value.format?.page_icon}</div>}
+              <div className="text">
+                {textBlock(properties.title, true, id)}
+              </div>
+            </div>
+          )
+          break
+        }
+        case 'tweet': {
+          if (properties.html) {
+            toRender.push(
+              <div
+                dangerouslySetInnerHTML={{ __html: properties.html }}
+                key={id}
+              />
+            )
+          }
+          break
+        }
+        default:
+          if (process.env.NODE_ENV !== 'production' && !listTypes.has(type)) {
+            console.log('unknown type', type)
+          }
+          break
+      }
+      return toRender
+    })
+
+    // build and replace table of contents
+    if (headings.length > 0 && hasTableOfContents) {
+      const contentsIndex = (
+        <div className={blogStyles.tableOfContents}>
+          <span>目次</span>
+          <ul className={blogStyles.headings}>
+            {headings.map(heading => {
+              let headingClass = blogStyles.heading1
+              if (heading.type === 'h2') {
+                headingClass = blogStyles.heading2
+              } else if (heading.type === 'h3') {
+                headingClass = blogStyles.heading3
+              }
+
+              return (
+                <li className={headingClass}>
+                  <a href={`#${heading.anchor}`}>{heading.name}</a>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )
+      tableOfContents.push(contentsIndex)
+    }
+  }
+
+  // cover
+  const coverURL = post.cover
+    ? `/api/asset?assetUrl=${encodeURIComponent(
+        post.cover.url as any
+      )}&blockId=${post.cover.blockId}`
+    : undefined
+  const ogImageReplace = coverURL
+    ? `https://notion-blog-customized.now.sh/${coverURL}`
+    : undefined
+
   return (
     <>
-      <Header titlePre={post.Page} />
+      <Header titlePre={post.Page} ogImageReplace={ogImageReplace} />
       {preview && (
         <div className={blogStyles.previewAlertContainer}>
           <div className={blogStyles.previewAlert}>
@@ -153,7 +524,17 @@ const RenderPost = ({ post, redirect, preview }) => {
         </div>
       )}
       <div className={blogStyles.post}>
+        {coverURL ? (
+          <img src={coverURL} style={{ width: '100%', boxShadow: 'none' }} />
+        ) : null}
         <h1>{post.Page || ''}</h1>
+        {post.Tags &&
+          post.Tags.length > 0 &&
+          post.Tags.map(tag => (
+            <Link href="/blog/tag/[tag]" as={getTagLink(tag)}>
+              <span className={blogStyles.tag}>{tag}</span>
+            </Link>
+          ))}
         {post.Authors.length > 0 && (
           <div className="authors">By: {post.Authors.join(' ')}</div>
         )}
@@ -163,256 +544,8 @@ const RenderPost = ({ post, redirect, preview }) => {
 
         <hr />
 
-        {(!post.content || post.content.length === 0) && (
-          <p>This post has no content</p>
-        )}
-
-        {(post.content || []).map((block, blockIdx) => {
-          const { value } = block
-          const { type, properties, id, parent_id } = value
-          const isLast = blockIdx === post.content.length - 1
-          const isList = listTypes.has(type)
-          const toRender = []
-
-          if (isList) {
-            listTagName = components[type === 'bulleted_list' ? 'ul' : 'ol']
-            listLastId = `list${id}`
-
-            listMap[id] = {
-              key: id,
-              nested: [],
-              children: textBlock(properties.title, true, id),
-            }
-
-            if (listMap[parent_id]) {
-              listMap[id].isNested = true
-              listMap[parent_id].nested.push(id)
-            }
-          }
-
-          if (listTagName && (isLast || !isList)) {
-            toRender.push(
-              React.createElement(
-                listTagName,
-                { key: listLastId! },
-                Object.keys(listMap).map((itemId) => {
-                  if (listMap[itemId].isNested) return null
-
-                  const createEl = (item) =>
-                    React.createElement(
-                      components.li || 'ul',
-                      { key: item.key },
-                      item.children,
-                      item.nested.length > 0
-                        ? React.createElement(
-                            components.ul || 'ul',
-                            { key: item + 'sub-list' },
-                            item.nested.map((nestedId) =>
-                              createEl(listMap[nestedId])
-                            )
-                          )
-                        : null
-                    )
-                  return createEl(listMap[itemId])
-                })
-              )
-            )
-            listMap = {}
-            listLastId = null
-            listTagName = null
-          }
-
-          const renderHeading = (Type: string | React.ComponentType) => {
-            toRender.push(
-              <Heading key={id}>
-                <Type key={id}>{textBlock(properties.title, true, id)}</Type>
-              </Heading>
-            )
-          }
-
-          switch (type) {
-            case 'page':
-            case 'divider':
-              break
-            case 'text':
-              if (properties) {
-                toRender.push(textBlock(properties.title, false, id))
-              }
-              break
-            case 'image':
-            case 'video':
-            case 'embed': {
-              const { format = {} } = value
-              const {
-                block_width,
-                block_height,
-                display_source,
-                block_aspect_ratio,
-              } = format
-              const baseBlockWidth = 768
-              const roundFactor = Math.pow(10, 2)
-              // calculate percentages
-              const width = block_width
-                ? `${
-                    Math.round(
-                      (block_width / baseBlockWidth) * 100 * roundFactor
-                    ) / roundFactor
-                  }%`
-                : block_height || '100%'
-
-              const isImage = type === 'image'
-              const Comp = isImage ? 'img' : 'video'
-              const useWrapper = block_aspect_ratio && !block_height
-              const childStyle: CSSProperties = useWrapper
-                ? {
-                    width: '100%',
-                    height: '100%',
-                    border: 'none',
-                    position: 'absolute',
-                    top: 0,
-                  }
-                : {
-                    width,
-                    border: 'none',
-                    height: block_height,
-                    display: 'block',
-                    maxWidth: '100%',
-                  }
-
-              let child = null
-
-              if (!isImage && !value.file_ids) {
-                // external resource use iframe
-                child = (
-                  <iframe
-                    style={childStyle}
-                    src={display_source}
-                    key={!useWrapper ? id : undefined}
-                    className={!useWrapper ? 'asset-wrapper' : undefined}
-                  />
-                )
-              } else {
-                // notion resource
-                child = (
-                  <Comp
-                    key={!useWrapper ? id : undefined}
-                    src={`/api/asset?assetUrl=${encodeURIComponent(
-                      display_source as any
-                    )}&blockId=${id}`}
-                    controls={!isImage}
-                    alt={`An ${isImage ? 'image' : 'video'} from Notion`}
-                    loop={!isImage}
-                    muted={!isImage}
-                    autoPlay={!isImage}
-                    style={childStyle}
-                  />
-                )
-              }
-
-              toRender.push(
-                useWrapper ? (
-                  <div
-                    style={{
-                      paddingTop: `${Math.round(block_aspect_ratio * 100)}%`,
-                      position: 'relative',
-                    }}
-                    className="asset-wrapper"
-                    key={id}
-                  >
-                    {child}
-                  </div>
-                ) : (
-                  child
-                )
-              )
-              break
-            }
-            case 'header':
-              renderHeading('h1')
-              break
-            case 'sub_header':
-              renderHeading('h2')
-              break
-            case 'sub_sub_header':
-              renderHeading('h3')
-              break
-            case 'code': {
-              if (properties.title) {
-                const content = properties.title[0][0]
-                const language = properties.language[0][0]
-
-                if (language === 'LiveScript') {
-                  // this requires the DOM for now
-                  toRender.push(
-                    <ReactJSXParser
-                      key={id}
-                      jsx={content}
-                      components={components}
-                      componentsOnly={false}
-                      renderInpost={false}
-                      allowUnknownElements={true}
-                      blacklistedTags={['script', 'style']}
-                    />
-                  )
-                } else {
-                  toRender.push(
-                    <components.Code key={id} language={language || ''}>
-                      {content}
-                    </components.Code>
-                  )
-                }
-              }
-              break
-            }
-            case 'quote': {
-              if (properties.title) {
-                toRender.push(
-                  React.createElement(
-                    components.blockquote,
-                    { key: id },
-                    properties.title
-                  )
-                )
-              }
-              break
-            }
-            case 'callout': {
-              toRender.push(
-                <div className="callout" key={id}>
-                  {value.format?.page_icon && (
-                    <div>{value.format?.page_icon}</div>
-                  )}
-                  <div className="text">
-                    {textBlock(properties.title, true, id)}
-                  </div>
-                </div>
-              )
-              break
-            }
-            case 'tweet': {
-              if (properties.html) {
-                toRender.push(
-                  <div
-                    dangerouslySetInnerHTML={{ __html: properties.html }}
-                    key={id}
-                  />
-                )
-              }
-              break
-            }
-            default:
-              if (
-                process.env.NODE_ENV !== 'production' &&
-                !listTypes.has(type)
-              ) {
-                console.log('unknown type', type)
-              }
-              break
-          }
-          return toRender
-        })}
+        {contents}
       </div>
-      <Footer />
     </>
   )
 }

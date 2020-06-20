@@ -6,30 +6,19 @@ import contactStyles from '../styles/contact.module.css'
 
 import GitHub from '../components/svgs/github'
 import Twitter from '../components/svgs/twitter'
-import Envelope from '../components/svgs/envelope'
-import LinkedIn from '../components/svgs/linkedin'
+import Avatar from '../components/svgs/avatar'
 
-export const contacts = [
+const contacts = [
   {
     Comp: Twitter,
     alt: 'twitter icon',
-    link: 'https://twitter.com/j_hardcoder',
+    link: 'https://twitter.com/ichi0g0y',
   },
   {
     Comp: GitHub,
     alt: 'github icon',
-    link: 'https://github.com/yukiorita1117',
+    link: 'https://github.com/ichi0g0y',
   },
-  // {
-  //   Comp: LinkedIn,
-  //   alt: 'linkedin icon',
-  //   link: 'https://www.linkedin.com/in/jj-kasper-0b5392166/',
-  // },
-  // {
-  //   Comp: Envelope,
-  //   alt: 'envelope icon',
-  //   link: 'mailto:jj@jjsweb.site?subject=Notion Blog',
-  // },
 ]
 
 export default () => (
@@ -37,15 +26,14 @@ export default () => (
     <Header titlePre="Contact" />
     <div className={sharedStyles.layout}>
       <div className={contactStyles.avatar}>
-        {/* <img src="/avatar.png" alt="avatar with letters JJ" height={60} /> */}
-        {/* TODO ここになんかアイコン的なの入れたい */}
+        <Avatar width={150} height={150} />
       </div>
 
       <h1 style={{ marginTop: 0 }}>Contact</h1>
 
       <div className={contactStyles.name}>
-        JSON HardCoder - ふろんとえんど1年生
-        {/* <ExtLink href="https://zeit.co">ZEIT</ExtLink> */}
+        ichi0g0y - Cheep Engineer @{' '}
+        <ExtLink href="https://ichi0g0y.me">ichi0g0y.me</ExtLink>
       </div>
 
       <div className={contactStyles.links}>

@@ -5,32 +5,27 @@ import { useRouter } from 'next/router'
 import styles from '../styles/header.module.css'
 
 const navItems: { label: string; page?: string; link?: string }[] = [
-  // { label: 'Home', page: '/' },
-  { label: '⬅︎ Back', page: '/blog' },
-  // { label: 'Contact', page: '/contact' },
+  { label: 'Home', page: '/' },
+  { label: 'Blog', page: '/blog' },
 ]
 
 const ogImageUrl = 'https://notion-blog.now.sh/og-image.png'
 
-export default ({ titlePre = '' }) => {
+export default ({ titlePre = '', ogImageReplace = undefined }) => {
   const { pathname } = useRouter()
 
   return (
     <header className={styles.header}>
       <Head>
-        <title>{titlePre ? `${titlePre} |` : ''} JH Notion Blog</title>
+        <title>{titlePre ? `${titlePre} |` : ''} Keike Blog</title>
         <meta
           name="description"
-          content="An Next.js site of Json Hard Coder using Notion for the blog"
+          content="けいけブログです"
         />
-        <meta name="og:title" content="JH Notion Blog" />
-        <meta property="og:image" content={ogImageUrl} />
-        <meta name="twitter:site" content="@J_HardCoder" />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:image" content={ogImageUrl} />
+        <meta name="og:title" content="Keike Blog" />
+        <meta property="og:image" content={ogImageReplace || ogImageUrl} />
       </Head>
       <ul>
-        {/* TODO Backボタンがイケてないのでどげんかする */}
         {navItems.map(({ label, page, link }) => (
           <li key={label}>
             {page ? (
