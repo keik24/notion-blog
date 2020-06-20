@@ -1,8 +1,11 @@
+// Blog Page
 import Link from 'next/link'
-import Header from '../../components/header'
-
+// import Header from '../../components/header'
+import styled from 'styled-components'
 import blogStyles from '../../styles/blog.module.css'
 import sharedStyles from '../../styles/shared.module.css'
+import { Card, CardContent } from '@material-ui/core'
+import Footer from '../../components/footer'
 
 import {
   getBlogLink,
@@ -13,12 +16,22 @@ import { textBlock } from '../../lib/notion/renderers'
 import getNotionUsers from '../../lib/notion/getNotionUsers'
 import getBlogIndex from '../../lib/notion/getBlogIndex'
 
+const StyledCard = styled(Card)`
+  overflow: hidden;
+  max-width: 744px;
+  margin: auto;
+`
+
+const Header = styled.div`
+  margin-top: 48px;
+`
+
 export async function getStaticProps({ preview }) {
   const postsTable = await getBlogIndex()
 
   const authorsToGet: Set<string> = new Set()
   const posts: any[] = Object.keys(postsTable)
-    .map(slug => {
+    .map((slug) => {
       const post = postsTable[slug]
       // remove draft posts in production
       if (!preview && !postIsPublished(post)) {
@@ -34,8 +47,8 @@ export async function getStaticProps({ preview }) {
 
   const { users } = await getNotionUsers([...authorsToGet])
 
-  posts.map(post => {
-    post.Authors = post.Authors.map(id => users[id].full_name)
+  posts.map((post) => {
+    post.Authors = post.Authors.map((id) => users[id].full_name)
   })
 
   return {
@@ -43,19 +56,19 @@ export async function getStaticProps({ preview }) {
       preview: preview || false,
       posts,
     },
-    unstable_revalidate: 10,
+    revalidate: 10,
   }
 }
 
 export default ({ posts = [], preview }) => {
   return (
     <>
-      <Header titlePre="Blog" />
+      <Header />
       {preview && (
         <div className={blogStyles.previewAlertContainer}>
           <div className={blogStyles.previewAlert}>
             <b>Note:</b>
-            {` `}Viewing in preview mode{' '}
+            Viewing in preview mode
             <Link href={`/api/clear-preview`}>
               <button className={blogStyles.escapePreview}>Exit Preview</button>
             </Link>
@@ -63,40 +76,60 @@ export default ({ posts = [], preview }) => {
         </div>
       )}
       <div className={`${sharedStyles.layout} ${blogStyles.blogIndex}`}>
-        <h1>My Notion Blog</h1>
+        <img
+          src="/zeit-and-notion.png"
+          height="85"
+          width="250"
+          alt="Vercel + Notion"
+        />
+        <h1>Json HardCoder Blog</h1>
+        <div className="explanation">
+          <p>日々の開発で学んだこととかを投稿するブログ。</p>
+        </div>
         {posts.length === 0 && (
           <p className={blogStyles.noPosts}>There are no posts yet</p>
         )}
-        {posts.map(post => {
+        {posts.map((post) => {
           return (
-            <div className={blogStyles.postPreview} key={post.Slug}>
-              <h3>
-                <Link href="/blog/[slug]" as={getBlogLink(post.Slug)}>
-                  <div className={blogStyles.titleContainer}>
-                    {!post.Published && (
-                      <span className={blogStyles.draftBadge}>Draft</span>
+            <>
+              <StyledCard>
+                <CardContent>
+                  <div className={blogStyles.postPreview} key={post.Slug}>
+                    <h3>
+                      <Link href="/blog/[slug]" as={getBlogLink(post.Slug)}>
+                        <div className={blogStyles.titleContainer}>
+                          {!post.Published && (
+                            <span className={blogStyles.draftBadge}>Draft</span>
+                          )}
+                          <a>{post.Page}</a>
+                        </div>
+                      </Link>
+                    </h3>
+                    {post.Authors.length > 0 && (
+                      <div className="authors">
+                        By: {post.Authors.join(' ')}
+                      </div>
                     )}
-                    <a>{post.Page}</a>
+                    {post.Date && (
+                      <div className="posted">
+                        Posted: {getDateStr(post.Date)}
+                      </div>
+                    )}
+                    <p>
+                      {(!post.preview || post.preview.length === 0) &&
+                        'No preview available'}
+                      {(post.preview || []).map((block, idx) =>
+                        textBlock(block, true, `${post.Slug}${idx}`)
+                      )}
+                    </p>
                   </div>
-                </Link>
-              </h3>
-              {post.Authors.length > 0 && (
-                <div className="authors">By: {post.Authors.join(' ')}</div>
-              )}
-              {post.Date && (
-                <div className="posted">Posted: {getDateStr(post.Date)}</div>
-              )}
-              <p>
-                {(!post.preview || post.preview.length === 0) &&
-                  'No preview available'}
-                {(post.preview || []).map((block, idx) =>
-                  textBlock(block, true, `${post.Slug}${idx}`)
-                )}
-              </p>
-            </div>
+                </CardContent>
+              </StyledCard>
+            </>
           )
         })}
       </div>
+      <Footer />
     </>
   )
 }

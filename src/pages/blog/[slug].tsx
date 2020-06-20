@@ -12,6 +12,7 @@ import React, { CSSProperties, useEffect } from 'react'
 import getBlogIndex from '../../lib/notion/getBlogIndex'
 import getNotionUsers from '../../lib/notion/getNotionUsers'
 import { getBlogLink, getDateStr } from '../../lib/blog-helpers'
+import Footer from '../../components/footer'
 
 // Get the data for each blog post
 export async function getStaticProps({ params: { slug }, preview }) {
@@ -28,7 +29,7 @@ export async function getStaticProps({ params: { slug }, preview }) {
         redirect: '/blog',
         preview: false,
       },
-      unstable_revalidate: 5,
+      revalidate: 5,
     }
   }
   const postData = await getPageData(post.id)
@@ -57,14 +58,14 @@ export async function getStaticProps({ params: { slug }, preview }) {
   }
 
   const { users } = await getNotionUsers(post.Authors || [])
-  post.Authors = Object.keys(users).map(id => users[id].full_name)
+  post.Authors = Object.keys(users).map((id) => users[id].full_name)
 
   return {
     props: {
       post,
       preview: preview || false,
     },
-    unstable_revalidate: 10,
+    revalidate: 10,
   }
 }
 
@@ -75,8 +76,8 @@ export async function getStaticPaths() {
   // for actually published ones
   return {
     paths: Object.keys(postsTable)
-      .filter(post => postsTable[post].Published === 'Yes')
-      .map(slug => getBlogLink(slug)),
+      .filter((post) => postsTable[post].Published === 'Yes')
+      .map((slug) => getBlogLink(slug)),
     fallback: true,
   }
 }
@@ -103,6 +104,7 @@ const RenderPost = ({ post, redirect, preview }) => {
     // client navigation
     if (post && post.hasTweet) {
       if ((window as any)?.twttr?.widgets) {
+        // TODO onSave時のlintと eslint --fix のlintチェックが異なる。
         ;(window as any).twttr.widgets.load()
       } else if (!document.querySelector(`script[src="${twitterSrc}"]`)) {
         const script = document.createElement('script')
@@ -170,7 +172,7 @@ const RenderPost = ({ post, redirect, preview }) => {
           const { type, properties, id, parent_id } = value
           const isLast = blockIdx === post.content.length - 1
           const isList = listTypes.has(type)
-          let toRender = []
+          const toRender = []
 
           if (isList) {
             listTagName = components[type === 'bulleted_list' ? 'ul' : 'ol']
@@ -193,10 +195,10 @@ const RenderPost = ({ post, redirect, preview }) => {
               React.createElement(
                 listTagName,
                 { key: listLastId! },
-                Object.keys(listMap).map(itemId => {
+                Object.keys(listMap).map((itemId) => {
                   if (listMap[itemId].isNested) return null
 
-                  const createEl = item =>
+                  const createEl = (item) =>
                     React.createElement(
                       components.li || 'ul',
                       { key: item.key },
@@ -205,7 +207,7 @@ const RenderPost = ({ post, redirect, preview }) => {
                         ? React.createElement(
                             components.ul || 'ul',
                             { key: item + 'sub-list' },
-                            item.nested.map(nestedId =>
+                            item.nested.map((nestedId) =>
                               createEl(listMap[nestedId])
                             )
                           )
@@ -251,9 +253,11 @@ const RenderPost = ({ post, redirect, preview }) => {
               const roundFactor = Math.pow(10, 2)
               // calculate percentages
               const width = block_width
-                ? `${Math.round(
-                    (block_width / baseBlockWidth) * 100 * roundFactor
-                  ) / roundFactor}%`
+                ? `${
+                    Math.round(
+                      (block_width / baseBlockWidth) * 100 * roundFactor
+                    ) / roundFactor
+                  }%`
                 : block_height || '100%'
 
               const isImage = type === 'image'
@@ -408,6 +412,7 @@ const RenderPost = ({ post, redirect, preview }) => {
           return toRender
         })}
       </div>
+      <Footer />
     </>
   )
 }

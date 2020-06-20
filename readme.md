@@ -82,3 +82,8 @@ To run the project locally you need to follow steps 1 and 2 of [deploying](#depl
 - Guillermo Rauch [@rauchg](https://twitter.com/rauchg) for the initial idea
 - Shu Ding [@shuding\_](https://twitter.com/shuding_) for the design help
 - Luis Alvarez [@luis_fades](https://twitter.com/luis_fades) for design help and bug catching
+
+## 個人的メモ
+
+- 管理画面で編集途中のノートを更新した際、時間のラグがある。
+- deploy すると追加編集の部分が更新されたけど、関係ないような気もする。

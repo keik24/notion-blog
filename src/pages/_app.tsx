@@ -4,6 +4,7 @@ import Footer from '../components/footer'
 export default ({ Component, pageProps }) => (
   <>
     <Component {...pageProps} />
-    <Footer />
+    {/* 不要なのでコメントアウト */}
+    {/* <Footer /> */}
   </>
 )

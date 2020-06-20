@@ -5,7 +5,9 @@
     "dev": "next dev",
     "start": "next start",
     "build": "next build && node .next/serverless/scripts/build-rss.js",
-    "format": "prettier --write \"**/*.{js,jsx,json,ts,tsx,md,mdx,css,html,yml,yaml,scss,sass}\" --ignore-path .gitignore"
+    "format": "prettier --write \"**/*.{js,jsx,json,ts,tsx,md,mdx,css,html,yml,yaml,scss,sass}\" --ignore-path .gitignore",
+    "lint": "eslint --ext .tsx,.ts src --cache",
+    "fix": "eslint --ext .tsx,.ts src --fix"
   },
   "husky": {
     "hooks": {
@@ -13,21 +15,27 @@
     }
   },
   "dependencies": {
+    "@material-ui/core": "^4.10.2",
     "@zeit/react-jsx-parser": "^2.0.0",
-    "async-sema": "^3.1.0",
+    "eslint-config-prettier": "^6.11.0",
+    "eslint-plugin-prettier": "^3.1.3",
     "github-slugger": "^1.2.1",
-    "next": "9.4.4",
+    "next": "^9.3.2",
     "prismjs": "^1.17.1",
     "react": "16.12.0",
     "react-dom": "16.12.0",
-    "uuid": "^8.1.0"
+    "styled-components": "^5.1.1"
   },
   "devDependencies": {
     "@types/node": "^13.1.2",
     "@types/react": "^16.9.17",
+    "@typescript-eslint/eslint-plugin": "^3.2.0",
+    "@typescript-eslint/parser": "^3.2.0",
+    "eslint": "^7.2.0",
+    "eslint-plugin-react": "^7.20.0",
     "husky": "^3.1.0",
     "lint-staged": "^9.5.0",
-    "prettier": "^1.19.1",
+    "prettier": "^2.0.5",
     "typescript": "^3.7.4"
   }
 }
